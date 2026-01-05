@@ -36,13 +36,32 @@ export function useBotConfig(idl?: Idl) {
     const fetchBotConfig = async () => {
       try {
         setLoading(true);
-        // Note: Isso requer que o IDL seja carregado e o programa tenha sido compilado
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const config = await (program.account as any).tradeBotConfig.fetch(pda);
-        setBotConfig(config as BotConfig);
+        
+        // Primeiro, verificar se a conta existe usando método robusto
+        const accountInfo = await connection.getAccountInfo(pda);
+        
+        if (!accountInfo) {
+          // Conta não existe
+          setBotConfig(null);
+          setExists(false);
+          return;
+        }
+
+        // Conta existe, tentar buscar dados
         setExists(true);
+        
+        try {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const config = await (program.account as any).tradeBotConfig.fetch(pda);
+          setBotConfig(config as BotConfig);
+        } catch (fetchError) {
+          // Conta existe mas não consegue deserializar (estrutura antiga?)
+          console.warn("Conta existe mas não pode ser deserializada. Pode ser estrutura antiga.");
+          setBotConfig(null);
+          // Manter exists = true para mostrar opções de gerenciamento
+        }
       } catch (error) {
-        // Conta não existe ainda
+        console.error("Erro ao buscar bot config:", error);
         setBotConfig(null);
         setExists(false);
       } finally {

@@ -145,7 +145,7 @@ if [ -d "app" ]; then
 NEXT_PUBLIC_NETWORK=devnet
 
 # Program ID (atualizar após deploy)
-NEXT_PUBLIC_PROGRAM_ID=EJQW7cwHAdd6dLGuwNTYa7P2a5PrRXrkiYcbsyqwFYky
+NEXT_PUBLIC_PROGRAM_ID=AFrpU4WsWTUSAxuHT9WJp5fx5pVwgtXxgng9XAtNSBmZ
 EOF
         print_success ".env.local criado"
     else

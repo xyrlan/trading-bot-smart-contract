@@ -25,7 +25,7 @@ export const RAYDIUM_PROGRAM_ID = new PublicKey(
 // Token addresses conhecidos (devnet)
 export const DEVNET_TOKENS = {
   USDC: NETWORK === "localnet" 
-    ? new PublicKey("WiuGG9t4JXVM4fncwhNRJArMQBqfxbrhmiuoid1w76D") 
+    ? new PublicKey("6yg6vou2kF7f2C7jC1TmVfkWTRUWTeCiP1xJ1Rw3zv4e") 
     : new PublicKey("4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU"),
   SOL: new PublicKey("So11111111111111111111111111111111111111112"), // Wrapped SOL
 };

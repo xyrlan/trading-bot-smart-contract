@@ -6,6 +6,7 @@ import BN from "bn.js";
  */
 export interface BotConfig {
   owner: PublicKey;
+  backendAuthority: PublicKey;
   maxTradeAmount: BN;
   maxSlippageBps: number;
   isActive: boolean;

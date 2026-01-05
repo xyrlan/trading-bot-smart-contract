@@ -50,36 +50,52 @@ export const StatusDisplay: FC<StatusDisplayProps> = ({ idl }) => {
   return (
     <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
       <h3 className="text-xl font-bold text-white mb-4">Status do Bot</h3>
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <p className="text-gray-400 text-sm">Status</p>
-          <div className="flex items-center gap-2 mt-1">
-            <div
-              className={`w-3 h-3 rounded-full ${
-                botConfig.isActive ? "bg-green-500" : "bg-red-500"
-              }`}
-            />
-            <p className="text-white font-semibold">
-              {botConfig.isActive ? "Ativo" : "Inativo"}
+      <div className="space-y-4">
+        {/* Status Grid */}
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <p className="text-gray-400 text-sm">Status</p>
+            <div className="flex items-center gap-2 mt-1">
+              <div
+                className={`w-3 h-3 rounded-full ${
+                  botConfig.isActive ? "bg-green-500" : "bg-red-500"
+                }`}
+              />
+              <p className="text-white font-semibold">
+                {botConfig.isActive ? "Ativo" : "Inativo"}
+              </p>
+            </div>
+          </div>
+          <div>
+            <p className="text-gray-400 text-sm">Trades Executados</p>
+            <p className="text-white font-semibold text-lg mt-1">
+              {botConfig.tradesExecuted.toString()}
+            </p>
+          </div>
+          <div>
+            <p className="text-gray-400 text-sm">Limite Máximo por Trade</p>
+            <p className="text-white font-semibold mt-1">
+              {(Number(botConfig.maxTradeAmount) / 1e9).toFixed(2)} tokens
+            </p>
+          </div>
+          <div>
+            <p className="text-gray-400 text-sm">Slippage Máximo</p>
+            <p className="text-white font-semibold mt-1">
+              {(botConfig.maxSlippageBps / 100).toFixed(2)}%
             </p>
           </div>
         </div>
-        <div>
-          <p className="text-gray-400 text-sm">Trades Executados</p>
-          <p className="text-white font-semibold text-lg mt-1">
-            {botConfig.tradesExecuted.toString()}
-          </p>
-        </div>
-        <div>
-          <p className="text-gray-400 text-sm">Limite Máximo por Trade</p>
-          <p className="text-white font-semibold mt-1">
-            {(Number(botConfig.maxTradeAmount) / 1e9).toFixed(2)} tokens
-          </p>
-        </div>
-        <div>
-          <p className="text-gray-400 text-sm">Slippage Máximo</p>
-          <p className="text-white font-semibold mt-1">
-            {(botConfig.maxSlippageBps / 100).toFixed(2)}%
+
+        {/* Backend Authority */}
+        <div className="pt-4 border-t border-gray-700">
+          <p className="text-gray-400 text-sm mb-2">🔑 Backend Authority</p>
+          <div className="bg-gray-700/50 rounded-lg p-3 break-all">
+            <p className="text-purple-400 font-mono text-xs">
+              {botConfig.backendAuthority?.toBase58()}
+            </p>
+          </div>
+          <p className="text-xs text-gray-500 mt-1">
+            Esta chave pode executar trades automaticamente
           </p>
         </div>
       </div>
