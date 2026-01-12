@@ -3,6 +3,7 @@
 
 generator client {
     provider = "prisma-client-js"
+    output   = "../generated/client"
 }
 
 // Prisma 7: Connection URL is now managed in prisma.config.ts and PrismaClient constructor
