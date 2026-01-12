@@ -35,7 +35,7 @@ async function main() {
   console.log(`✅ Mint criado: ${usdcMint.toString()}`);
 
   // IMPORTANTE: Substitua pela public key da SUA carteira (a que está conectada no navegador)
-  const browserWallet = new PublicKey("3KkQUZvJnWXTmZiTx8LvF3ucLkcgcNNA5F7z9afz4m3U");
+  const browserWallet = new PublicKey(process.env.WALLET_PUBLIC_KEY!);
 
   // 4. Criar conta de token para a sua carteira
   const payerTokenAccount = await getOrCreateAssociatedTokenAccount(

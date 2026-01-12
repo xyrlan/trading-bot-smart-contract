@@ -6,16 +6,16 @@ resolution = true
 skip-lint = false
 
 [programs.localnet]
-trading_bot_smart_contract = "AFrpU4WsWTUSAxuHT9WJp5fx5pVwgtXxgng9XAtNSBmZ"
+trading_bot_smart_contract = "6Bo9tLqXg1SdDyDG6ZFV39NF32GRYEw1aPaE66nTrUH1"
 
 [programs.devnet]
-trading_bot_smart_contract = "AFrpU4WsWTUSAxuHT9WJp5fx5pVwgtXxgng9XAtNSBmZ"
+trading_bot_smart_contract = "6Bo9tLqXg1SdDyDG6ZFV39NF32GRYEw1aPaE66nTrUH1"
 
 [registry]
 url = "https://api.apr.dev"
 
 [provider]
-cluster = "localnet"
+cluster = "devnet"
 wallet = "~/.config/solana/id.json"
 
 [scripts]

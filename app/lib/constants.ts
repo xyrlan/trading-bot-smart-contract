@@ -15,7 +15,7 @@ export const RPC_ENDPOINT = (() => {
 })();
 // Program IDs
 export const PROGRAM_ID = new PublicKey(
-  process.env.NEXT_PUBLIC_PROGRAM_ID || "AFrpU4WsWTUSAxuHT9WJp5fx5pVwgtXxgng9XAtNSBmZ"
+  process.env.NEXT_PUBLIC_PROGRAM_ID!
 );
 
 export const RAYDIUM_PROGRAM_ID = new PublicKey(
