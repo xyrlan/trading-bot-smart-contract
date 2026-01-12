@@ -1,0 +1,120 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+    provider = "prisma-client-js"
+}
+
+// Prisma 7: Connection URL is now managed in prisma.config.ts and PrismaClient constructor
+datasource db {
+    provider = "postgresql"
+}
+
+model StrategyConfig {
+    id            String   @id @default(uuid())
+    userId        String
+    walletAddress String
+    tokenPair     String // "SOL/USDC"
+    strategyType  String // "composite", "rsi_only", "macd_only", etc
+    config        Json // Strategy-specific configuration
+    status        String   @default("ACTIVE") // ACTIVE, PAUSED, DELETED
+    createdAt     DateTime @default(now())
+    updatedAt     DateTime @updatedAt
+
+    signals TradeSignal[]
+
+    @@index([userId])
+    @@index([walletAddress])
+    @@index([status])
+}
+
+model TradeSignal {
+    id         String         @id @default(uuid())
+    strategyId String
+    strategy   StrategyConfig @relation(fields: [strategyId], references: [id])
+
+    signal     String // "BUY", "SELL", "NEUTRAL"
+    price      Float
+    confidence Float // 0-100
+    indicators Json // Snapshot of indicator values at signal time
+    reason     String // Human-readable explanation
+
+    executed    Boolean   @default(false)
+    txSignature String?
+    executedAt  DateTime?
+
+    amountIn  Float?
+    amountOut Float?
+    slippage  Float?
+
+    createdAt DateTime @default(now())
+
+    @@index([strategyId])
+    @@index([signal])
+    @@index([executed])
+    @@index([createdAt])
+}
+
+model Trade {
+    id            String @id @default(uuid())
+    walletAddress String
+    tokenPair     String
+
+    type      String // "BUY", "SELL"
+    amountIn  Float
+    amountOut Float
+    price     Float
+    slippage  Float
+
+    txSignature String    @unique
+    blockTime   DateTime?
+    status      String // "PENDING", "CONFIRMED", "FAILED"
+
+    strategyId String?
+    signalId   String?
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    @@index([walletAddress])
+    @@index([tokenPair])
+    @@index([status])
+    @@index([createdAt])
+}
+
+model CandleData {
+    id        String   @id @default(uuid())
+    tokenPair String
+    timestamp DateTime
+
+    open   Float
+    high   Float
+    low    Float
+    close  Float
+    volume Float
+
+    timeframe String // "1m", "5m", "15m", "1h", "4h", "1d"
+
+    createdAt DateTime @default(now())
+
+    @@unique([tokenPair, timestamp, timeframe])
+    @@index([tokenPair, timeframe, timestamp])
+}
+
+model BotConfig {
+    id            String @id @default(uuid())
+    walletAddress String @unique
+
+    isActive        Boolean @default(true)
+    maxTradeAmount  Float   @default(1.0)
+    defaultSlippage Float   @default(0.01)
+    minConfidence   Float   @default(70.0)
+
+    allowedTokenPairs Json // Array of allowed trading pairs
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    @@index([walletAddress])
+    @@index([isActive])
+}

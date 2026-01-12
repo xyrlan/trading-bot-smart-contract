@@ -6,10 +6,10 @@ resolution = true
 skip-lint = false
 
 [programs.localnet]
-trading_bot_smart_contract = "6Bo9tLqXg1SdDyDG6ZFV39NF32GRYEw1aPaE66nTrUH1"
+trading_bot = "6Bo9tLqXg1SdDyDG6ZFV39NF32GRYEw1aPaE66nTrUH1"
 
 [programs.devnet]
-trading_bot_smart_contract = "6Bo9tLqXg1SdDyDG6ZFV39NF32GRYEw1aPaE66nTrUH1"
+trading_bot = "6Bo9tLqXg1SdDyDG6ZFV39NF32GRYEw1aPaE66nTrUH1"
 
 [registry]
 url = "https://api.apr.dev"
