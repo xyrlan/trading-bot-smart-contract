@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import { EventEmitter } from 'events';
 import { db } from '../config/database';
 import { CandleData, StrategyResult } from '../strategies/base.strategy';

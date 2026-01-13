@@ -3,7 +3,13 @@
   "type": "module",
   "scripts": {
     "lint:fix": "prettier */*.js \"*/**/*{.js,.ts}\" -w",
-    "lint": "prettier */*.js \"*/**/*{.js,.ts}\" --check"
+    "lint": "prettier */*.js \"*/**/*{.js,.ts}\" --check",
+    "localnet:start": "bash scripts/localnet-setup.sh",
+    "localnet:start-raydium": "bash scripts/localnet-setup-raydium.sh",
+    "localnet:deploy": "node scripts/localnet-deploy.cjs",
+    "localnet:reset": "bash scripts/localnet-reset.sh",
+    "localnet:full": "yarn localnet:reset && yarn localnet:start && sleep 3 && yarn localnet:deploy",
+    "test:localnet": "anchor test --skip-local-validator"
   },
   "dependencies": {
     "@coral-xyz/anchor": "0.32.1",

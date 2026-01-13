@@ -3,10 +3,18 @@ import { PublicKey } from "@solana/web3.js";
 // Configuração de rede
 export const NETWORK = process.env.NEXT_PUBLIC_NETWORK || "localnet";
 export const RPC_ENDPOINT = (() => {
+  // Se RPC_URL personalizado estiver definido, usar ele (melhor performance)
+  if (process.env.NEXT_PUBLIC_RPC_URL) {
+    console.log('🚀 Using custom RPC endpoint');
+    return process.env.NEXT_PUBLIC_RPC_URL;
+  }
+
+  // Caso contrário, usar endpoints padrão
   switch (NETWORK) {
     case "mainnet-beta":
       return "https://api.mainnet-beta.solana.com";
     case "devnet":
+      console.log('⚠️  Using public devnet RPC (may be slow). Consider using a custom RPC endpoint.');
       return "https://api.devnet.solana.com";
     case "localnet":
     default:

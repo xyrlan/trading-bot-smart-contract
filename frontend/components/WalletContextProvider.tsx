@@ -29,8 +29,17 @@ export const WalletContextProvider: FC<WalletContextProviderProps> = ({
     []
   );
 
+  // Configuração otimizada para melhor performance
+  const connectionConfig = useMemo(() => ({
+    commitment: 'processed' as const,
+    confirmTransactionInitialTimeout: 60000,
+  }), []);
+
   return (
-    <ConnectionProvider endpoint={RPC_ENDPOINT}>
+    <ConnectionProvider 
+      endpoint={RPC_ENDPOINT}
+      config={connectionConfig}
+    >
       <WalletProvider wallets={wallets} autoConnect>
         <WalletModalProvider>{children}</WalletModalProvider>
       </WalletProvider>

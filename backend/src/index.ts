@@ -1,4 +1,3 @@
-import 'dotenv/config';
 import Fastify from 'fastify';
 import { connectDatabase, disconnectDatabase } from './config/database';
 import { MarketDataService } from './services/market-data.service';
@@ -33,10 +32,11 @@ async function bootstrap() {
     const tradingQueue = new TradingQueue(executionService);
     
     const marketDataService = new MarketDataService({
-      wsUrl: process.env.BIRDEYE_WS_URL || 'wss://public-api.birdeye.so/socket',
+      wsUrl: process.env.BIRDEYE_WS_URL || 'wss://public-api.birdeye.so/socket/solana',
       pairs: (process.env.TRADING_PAIRS || 'SOL/USDC').split(','),
       candleSize: (process.env.CANDLE_SIZE as any) || '5m',
       reconnectInterval: 5000,
+      apiKey: process.env.BIRDEYE_API_KEY,
     });
     
     // 3. Setup event handlers

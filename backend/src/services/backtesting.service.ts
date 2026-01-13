@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import { CandleData, StrategyResult } from '../strategies/base.strategy';
 import { CompositeStrategy } from '../strategies/composite.strategy';
 import { RsiStrategy } from '../strategies/rsi.strategy';

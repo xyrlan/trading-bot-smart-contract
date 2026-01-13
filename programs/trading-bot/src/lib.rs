@@ -1,7 +1,7 @@
 use anchor_lang::prelude::*;
 use anchor_spl::token::{Token, TokenAccount};
 
-declare_id!("6Bo9tLqXg1SdDyDG6ZFV39NF32GRYEw1aPaE66nTrUH1");
+declare_id!("q5JxCEA2rb3MzxRcGHRp6wqTpWmdMAYaFz9x86b85XS");
 
 #[program]
 pub mod trading_bot_smart_contract {

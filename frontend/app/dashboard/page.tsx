@@ -4,14 +4,24 @@ import { useEffect, useState } from 'react';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { Activity, TrendingUp, DollarSign, Target } from 'lucide-react';
 import { StatsCard } from '@/components/dashboard/StatsCard';
+import { OnboardingCard } from '@/components/dashboard/OnboardingCard';
+import { LiveStrategyStatus } from '@/components/dashboard/LiveStrategyStatus';
+import { SwapTest } from '@/components/dashboard/SwapTest';
+import { useBotConfig } from '@/hooks/useBotConfig';
 import strategiesApi from '@/lib/api/strategies';
 import healthApi from '@/lib/api/health';
 import type { StrategyConfig, BackendStatus } from '@/lib/types/strategy';
+import idl from '@/lib/idl.json';
+import { Idl } from '@coral-xyz/anchor';
+import Link from 'next/link';
 
 export default function DashboardPage() {
   const { publicKey } = useWallet();
+  const programIdl = idl as Idl;
+  const { exists, loading: botLoading } = useBotConfig(programIdl);
   const [strategies, setStrategies] = useState<StrategyConfig[]>([]);
   const [backendStatus, setBackendStatus] = useState<BackendStatus | null>(null);
+  const [showOnboarding, setShowOnboarding] = useState(false);
 
   useEffect(() => {
     const loadData = async () => {
@@ -38,15 +48,65 @@ export default function DashboardPage() {
     return () => clearInterval(interval);
   }, [publicKey]);
 
+  // Atualizar showOnboarding baseado no estado do bot
+  useEffect(() => {
+    console.log('🔄 Bot status changed:', { botLoading, exists, publicKey: publicKey?.toBase58() });
+    if (!botLoading && publicKey) {
+      setTimeout(() => {
+        setShowOnboarding(!exists);
+      }, 0);
+    }
+  }, [exists, botLoading, publicKey]);
+
   if (!publicKey) {
     return (
-      <div className="flex items-center justify-center h-full">
-        <div className="text-center">
-          <h2 className="text-2xl font-bold mb-2 text-foreground">Welcome to Trading Bot Dashboard</h2>
-          <p className="text-muted-foreground mb-4">
-            Connect your wallet to get started
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="text-center max-w-md">
+          <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-primary/10 mb-6">
+            <span className="text-4xl">👋</span>
+          </div>
+          <h2 className="text-3xl font-bold mb-3 text-foreground">
+            Bem-vindo ao Trading Bot
+          </h2>
+          <p className="text-muted-foreground mb-6">
+            Conecte sua carteira para começar a configurar seu bot de trading automatizado
           </p>
+          <div className="bg-muted/50 rounded-lg p-4 text-sm text-muted-foreground">
+            <p className="font-medium mb-2">O que você pode fazer:</p>
+            <ul className="space-y-1 text-left">
+              <li>• Configurar estratégias de trading</li>
+              <li>• Executar trades automatizados</li>
+              <li>• Monitorar performance em tempo real</li>
+            </ul>
+          </div>
         </div>
+      </div>
+    );
+  }
+
+  // Mostrar loading enquanto verifica o bot (com timeout de 5 segundos)
+  if (botLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4" />
+          <p className="text-muted-foreground">Verificando configuração do bot...</p>
+          <p className="text-xs text-muted-foreground mt-2">Isso pode levar alguns segundos</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Mostrar onboarding se bot não está inicializado
+  if (showOnboarding) {
+    return (
+      <div className="max-w-2xl mx-auto py-8">
+        <OnboardingCard onComplete={() => {
+          console.log('✅ Onboarding complete, reloading page...');
+          setShowOnboarding(false);
+          // Forçar reload após completar onboarding
+          setTimeout(() => window.location.reload(), 1000);
+        }} />
       </div>
     );
   }
@@ -80,6 +140,9 @@ export default function DashboardPage() {
         />
       </div>
 
+      {/* Live Status Widget */}
+      <LiveStrategyStatus />
+
       {/* Backend Status */}
       {backendStatus && (
         <div className="rounded-lg bg-card border border-border p-6">
@@ -112,16 +175,21 @@ export default function DashboardPage() {
         </div>
       )}
 
+      {/* Swap Test Component */}
+      {exists && !showOnboarding && (
+        <SwapTest />
+      )}
+
       {/* Recent Strategies */}
       <div className="rounded-lg bg-card border border-border p-6">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-semibold text-card-foreground">Your Strategies</h3>
-          <a
+          <Link
             href="/dashboard/strategies"
             className="text-sm text-primary hover:underline"
           >
             View all
-          </a>
+          </Link>
         </div>
 
         {strategies.length === 0 ? (
@@ -129,12 +197,12 @@ export default function DashboardPage() {
             <p className="text-muted-foreground mb-4">
               You haven&apos;t created any strategies yet
             </p>
-            <a
+            <Link
               href="/dashboard/strategies/create"
               className="inline-block rounded-md bg-primary px-4 py-2 text-primary-foreground hover:bg-primary/90"
             >
               Create Your First Strategy
-            </a>
+            </Link>
           </div>
         ) : (
           <div className="space-y-3">

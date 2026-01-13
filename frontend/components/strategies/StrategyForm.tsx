@@ -57,9 +57,17 @@ export function StrategyForm({ onSuccess, onCancel }: StrategyFormProps) {
         },
       };
 
-      await strategiesApi.create(strategy);
-      toast.success('Strategy created successfully!');
-      onSuccess?.();
+      const createdStrategy = await strategiesApi.create(strategy);
+      
+      toast.success('Estratégia criada e ativada!', {
+        description: `O bot está monitorando ${formData.tokenPair} com ${formData.indicators.length} indicador(es). Sinais serão processados automaticamente.`,
+        duration: 5000,
+      });
+      
+      // Aguardar um pouco para mostrar o toast antes de redirecionar
+      setTimeout(() => {
+        onSuccess?.();
+      }, 1000);
     } catch (error: any) {
       toast.error(error.response?.data?.error || 'Failed to create strategy');
       console.error('Strategy creation error:', error);

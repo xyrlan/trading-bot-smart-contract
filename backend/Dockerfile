@@ -17,6 +17,8 @@ RUN npx prisma generate
 # Build TypeScript
 RUN yarn build
 
+RUN cp -r src/idl dist/idl
+
 # Production stage
 FROM node:20-alpine
 
@@ -28,10 +30,13 @@ COPY package.json yarn.lock ./
 # Install production dependencies only
 RUN yarn install --frozen-lockfile --production
 
-# Copy built files and Prisma schema
+# Copiar os arquivos compilados e o schema do banco do estágio anterior
 COPY --from=builder /app/dist ./dist
-COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 COPY --from=builder /app/prisma ./prisma
+COPY --from=builder /app/dist ./dist
+
+# GERAR O CLIENTE PRISMA AQUI (Isso resolve o erro de COPY anterior)
+RUN npx prisma generate
 
 # Create logs directory
 RUN mkdir -p logs

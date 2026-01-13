@@ -37,8 +37,15 @@ export function useTrade(idl?: Idl) {
     maxTradeAmount: BN,
     maxSlippageBps: number
   ): Promise<string | null> => {
+    console.log('🎯 initializeBot CHAMADO');
+    console.log('  - program:', program ? 'OK' : 'NULL');
+    console.log('  - wallet:', wallet ? wallet.publicKey.toBase58() : 'NULL');
+    console.log('  - botConfigPDA:', botConfigPDA ? botConfigPDA.toBase58() : 'NULL');
+    
     if (!program || !wallet || !botConfigPDA) {
-      setError("Wallet ou programa não conectado");
+      const msg = "Wallet ou programa não conectado";
+      console.error('❌', msg);
+      setError(msg);
       return null;
     }
 
@@ -58,24 +65,57 @@ export function useTrade(idl?: Idl) {
       }
 
       console.log("🆕 Inicializando novo bot...");
+      console.log("📝 Preparando transação...");
+      console.log("  - botConfig:", botConfigPDA.toBase58());
+      console.log("  - owner:", wallet.publicKey.toBase58());
+      console.log("  - backendAuthority:", backendAuthority.toBase58());
+      console.log("  - maxTradeAmount:", maxTradeAmount.toString());
+      console.log("  - maxSlippageBps:", maxSlippageBps);
 
-      const tx = await program.methods
-        .initializeBot(
-          backendAuthority,
-          maxTradeAmount,
-          maxSlippageBps
-        )
-        .accounts({
-          botConfig: botConfigPDA,
-          owner: wallet.publicKey,
-          systemProgram: SystemProgram.programId,
-        })
-        .rpc();
+      console.log("🔄 Enviando transação...");
+      
+      let tx;
+      try {
+        tx = await program.methods
+          .initializeBot(
+            backendAuthority,
+            maxTradeAmount,
+            maxSlippageBps
+          )
+          .accounts({
+            botConfig: botConfigPDA,
+            owner: wallet.publicKey,
+            systemProgram: SystemProgram.programId,
+          })
+          .rpc();
+      } catch (txError) {
+        console.error("💥 ERRO NA TRANSAÇÃO:", txError);
+        throw txError; // Re-throw para o catch externo pegar
+      }
 
-      console.log(`✅ Bot initialized! Backend authority: ${backendAuthority.toBase58()}`);
+      console.log(`✅ Bot initialized! TX: ${tx}`);
+      console.log(`✅ Backend authority: ${backendAuthority.toBase58()}`);
       return tx;
     } catch (err) {
-      console.error("Erro ao inicializar bot:", err);
+      console.error("❌ ERRO COMPLETO ao inicializar bot:", err);
+      
+      // Log detalhado do erro
+      if (err instanceof Error) {
+        console.error("  - Error name:", err.name);
+        console.error("  - Error message:", err.message);
+        console.error("  - Error stack:", err.stack);
+      }
+      
+      // Verifica se é erro do Anchor/Solana
+      if (err && typeof err === 'object') {
+        console.error("  - Error object:", JSON.stringify(err, null, 2));
+        // @ts-ignore
+        if (err.logs) {
+          // @ts-ignore
+          console.error("  - Program logs:", err.logs);
+        }
+      }
+      
       const errorMessage = err instanceof Error ? err.message : "Erro ao inicializar bot";
       setError(errorMessage);
       return null;

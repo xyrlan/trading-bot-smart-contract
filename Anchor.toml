@@ -6,17 +6,20 @@ resolution = true
 skip-lint = false
 
 [programs.localnet]
-trading_bot = "6Bo9tLqXg1SdDyDG6ZFV39NF32GRYEw1aPaE66nTrUH1"
+trading_bot = "q5JxCEA2rb3MzxRcGHRp6wqTpWmdMAYaFz9x86b85XS"
 
 [programs.devnet]
-trading_bot = "6Bo9tLqXg1SdDyDG6ZFV39NF32GRYEw1aPaE66nTrUH1"
+trading_bot = "q5JxCEA2rb3MzxRcGHRp6wqTpWmdMAYaFz9x86b85XS"
 
 [registry]
 url = "https://api.apr.dev"
 
 [provider]
-cluster = "devnet"
+cluster = "localnet"
 wallet = "~/.config/solana/id.json"
 
 [scripts]
 test = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/**/*.ts"
+
+[test]
+startup_wait = 10000

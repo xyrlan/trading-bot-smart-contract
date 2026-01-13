@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import {
   Connection,
   PublicKey,
@@ -14,6 +15,8 @@ import { Program, AnchorProvider, Wallet } from '@coral-xyz/anchor';
 import { Raydium, TxVersion, parseTokenAccountResp } from '@raydium-io/raydium-sdk-v2';
 import { db } from '../config/database';
 import { EventEmitter } from 'events';
+import { bs58 } from '@coral-xyz/anchor/dist/cjs/utils/bytes';
+import path from 'path';
 
 interface TradeSignalData {
   signalId: string;
@@ -50,8 +53,18 @@ export class ExecutionService extends EventEmitter {
     );
     
     // Load backend wallet
-    const privateKeyArray = JSON.parse(process.env.BACKEND_WALLET_PRIVATE_KEY || '[]');
-    this.backendKeypair = Keypair.fromSecretKey(Uint8Array.from(privateKeyArray));
+    const privateKeyString = process.env.BACKEND_WALLET_PRIVATE_KEY;
+    if (!privateKeyString) {
+      throw new Error('BACKEND_WALLET_PRIVATE_KEY is not set');
+    }
+    
+    try {
+      // Decodifica a string Base58 para um Uint8Array
+      const decodedKey = bs58.decode(privateKeyString);
+      this.backendKeypair = Keypair.fromSecretKey(decodedKey);
+    } catch (error) {
+      throw new Error('Falha ao decodificar a chave privada. Verifique se ela está no formato Base58 correto.');
+    }
     
     // Initialize Anchor program
     const provider = new AnchorProvider(
@@ -62,9 +75,13 @@ export class ExecutionService extends EventEmitter {
     
     const programId = new PublicKey(process.env.PROGRAM_ID!);
     
+    const idlPath = path.join(__dirname, '..', 'idl', 'trading_bot_smart_contract.json');
+
+    console.log('📂 Carregando IDL de:', idlPath); // Log para debug
+    const idl = require(idlPath);
+
     // Load IDL from the deployed program
     // You'll need to import the IDL type
-    const idl = require('../../../app/idl/trading_bot_smart_contract.json');
     this.program = new Program(
       idl,
       provider

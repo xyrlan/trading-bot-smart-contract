@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import WebSocket from 'ws';
 import { EventEmitter } from 'events';
 import { CandleData } from '../strategies/base.strategy';
@@ -7,6 +8,7 @@ export interface MarketDataConfig {
   pairs: string[];
   candleSize: '1m' | '5m' | '15m' | '1h' | '4h' | '1d';
   reconnectInterval?: number;
+  apiKey?: string;
 }
 
 export interface PriceUpdate {
@@ -22,14 +24,26 @@ export class MarketDataService extends EventEmitter {
   private currentCandle: Map<string, Partial<CandleData>> = new Map();
   private reconnectTimer: NodeJS.Timeout | null = null;
   private isConnected = false;
+  private mockMode = false;
+  private mockInterval: NodeJS.Timeout | null = null;
+  private mockPrices: Map<string, number> = new Map();
   
   constructor(private config: MarketDataConfig) {
     super();
+    // Detectar modo mock
+    this.mockMode = config.wsUrl.startsWith('mock://');
+    if (this.mockMode) {
+      console.log('🎭 Mock mode enabled - generating synthetic market data');
+    }
   }
   
   start(): void {
     console.log(`🚀 Starting market data service for pairs: ${this.config.pairs.join(', ')}`);
-    this.connect();
+    if (this.mockMode) {
+      this.startMockMode();
+    } else {
+      this.connect();
+    }
   }
   
   stop(): void {
@@ -37,15 +51,90 @@ export class MarketDataService extends EventEmitter {
     if (this.reconnectTimer) {
       clearTimeout(this.reconnectTimer);
     }
+    if (this.mockInterval) {
+      clearInterval(this.mockInterval);
+    }
     if (this.ws) {
       this.ws.close();
     }
     this.isConnected = false;
   }
   
+  private startMockMode(): void {
+    console.log('🎭 Starting mock market data generator...');
+    
+    // Inicializar preços base para cada par
+    this.config.pairs.forEach(pair => {
+      const basePrice = this.getBasePriceForPair(pair);
+      this.mockPrices.set(pair, basePrice);
+      console.log(`  ${pair}: Starting at $${basePrice}`);
+    });
+    
+    this.isConnected = true;
+    this.emit('connected');
+    
+    // Gerar atualizações de preço a cada 1 segundo
+    this.mockInterval = setInterval(() => {
+      this.generateMockPriceUpdates();
+    }, 1000);
+    
+    console.log('✅ Mock market data generator started');
+    console.log('📊 Generating price updates every 1 second');
+  }
+  
+  private getBasePriceForPair(pair: string): number {
+    // Preços base realistas para diferentes pares
+    const basePrices: Record<string, number> = {
+      'SOL/USDC': 100,
+      'SOL-USDC': 100,
+      'TEST/USDC': 1.5,
+      'TEST-USDC': 1.5,
+      'BTC/USDC': 45000,
+      'ETH/USDC': 2500,
+    };
+    
+    return basePrices[pair] || 100;
+  }
+  
+  private generateMockPriceUpdates(): void {
+    this.config.pairs.forEach(pair => {
+      const currentPrice = this.mockPrices.get(pair) || 100;
+      
+      // Gerar variação de preço realista (-1% a +1%)
+      const volatility = 0.01; // 1% de volatilidade
+      const randomChange = (Math.random() - 0.5) * 2 * volatility;
+      const newPrice = currentPrice * (1 + randomChange);
+      
+      this.mockPrices.set(pair, newPrice);
+      
+      // Gerar volume aleatório
+      const baseVolume = 1000;
+      const volume = baseVolume * (0.5 + Math.random());
+      
+      const priceUpdate: PriceUpdate = {
+        pair,
+        price: newPrice,
+        timestamp: Date.now(),
+        volume,
+      };
+      
+      this.handlePriceUpdate(priceUpdate);
+    });
+  }
+  
   private connect(): void {
     try {
-      this.ws = new WebSocket(this.config.wsUrl);
+      // Build WebSocket URL with API key as query parameter
+      let wsUrl = this.config.wsUrl;
+      
+      if (this.config.apiKey) {
+        const separator = wsUrl.includes('?') ? '&' : '?';
+        wsUrl = `${wsUrl}${separator}x-api-key=${this.config.apiKey}`;
+      }
+      
+      console.log(`🔗 Connecting to: ${wsUrl.replace(this.config.apiKey || '', '***')}`);
+      
+      this.ws = new WebSocket(wsUrl);
       
       this.ws.on('open', () => {
         console.log('✅ WebSocket connected');
@@ -65,16 +154,34 @@ export class MarketDataService extends EventEmitter {
         }
       });
       
-      this.ws.on('error', (error) => {
-        console.error('❌ WebSocket error:', error);
-        this.emit('error', error);
+      this.ws.on('error', (error: any) => {
+        console.error('❌ WebSocket error:', error.message);
+        
+        // Check for authentication errors
+        if (error.message?.includes('403')) {
+          console.error('⚠️  WebSocket connection rejected (403 Forbidden)');
+          console.error('💡 This usually means:');
+          console.error('   - Missing or invalid API key');
+          console.error('   - API key needs to be set in BIRDEYE_API_KEY environment variable');
+          console.error('   - The WebSocket endpoint requires authentication');
+        }
+        
+        // Don't emit error to prevent crash - just log it
+        // this.emit('error', error);
       });
       
-      this.ws.on('close', () => {
-        console.log('🔌 WebSocket disconnected');
+      this.ws.on('close', (code: number, reason: Buffer) => {
+        const reasonStr = reason.toString();
+        console.log(`🔌 WebSocket disconnected (code: ${code}${reasonStr ? `, reason: ${reasonStr}` : ''})`);
         this.isConnected = false;
         this.emit('disconnected');
-        this.reconnect();
+        
+        // Only reconnect if it wasn't an auth error
+        if (code !== 1008 && code !== 1002) {
+          this.reconnect();
+        } else {
+          console.error('⛔ Not reconnecting due to authentication error. Please check your API key.');
+        }
       });
     } catch (error) {
       console.error('Error creating WebSocket connection:', error);
@@ -94,16 +201,48 @@ export class MarketDataService extends EventEmitter {
   private subscribe(): void {
     if (!this.ws || !this.isConnected) return;
     
-    // Subscribe to price updates for configured pairs
-    // The exact format depends on the WebSocket provider (Birdeye, Helius, etc.)
-    const subscribeMessage = {
-      type: 'subscribe',
-      pairs: this.config.pairs,
-      interval: this.config.candleSize,
+    // Subscribe to price updates for configured pairs using Birdeye format
+    // Note: This is a placeholder. You need to provide actual token addresses
+    // For now, we'll just log that we're ready to receive data
+    
+    // Birdeye subscription format example:
+    // {
+    //   "type": "SUBSCRIBE_PRICE",
+    //   "data": {
+    //     "chartType": "1m",
+    //     "currency": "pair",
+    //     "address": "So11111111111111111111111111111111111111112"
+    //   }
+    // }
+    
+    // For multiple pairs, send multiple subscription messages
+    for (const pair of this.config.pairs) {
+      // You need to map pair names to token addresses
+      // This is a placeholder - actual implementation needs token address mapping
+      const subscribeMessage = {
+        type: 'SUBSCRIBE_PRICE',
+        data: {
+          chartType: this.config.candleSize,
+          currency: 'pair',
+          address: this.getTokenAddressForPair(pair),
+        },
+      };
+      
+      this.ws.send(JSON.stringify(subscribeMessage));
+      console.log(`📡 Subscribed to ${pair} (${this.config.candleSize})`);
+    }
+  }
+  
+  private getTokenAddressForPair(pair: string): string {
+    // Map common pairs to their Solana token addresses
+    const tokenMap: Record<string, string> = {
+      'SOL/USDC': 'So11111111111111111111111111111111111111112', // SOL token address
+      'SOL-USDC': 'So11111111111111111111111111111111111111112',
+      'SOL': 'So11111111111111111111111111111111111111112',
+      // Add more pairs as needed
     };
     
-    this.ws.send(JSON.stringify(subscribeMessage));
-    console.log(`📡 Subscribed to: ${this.config.pairs.join(', ')}`);
+    return tokenMap[pair] || tokenMap['SOL'];
   }
   
   private parseMessage(data: WebSocket.Data): PriceUpdate | null {
@@ -111,15 +250,36 @@ export class MarketDataService extends EventEmitter {
       const text = data.toString();
       const parsed = JSON.parse(text);
       
-      // Adapt this based on your WebSocket provider's message format
-      // This is a generic example
+      // Log first message to understand format
+      if (!this.isConnected) {
+        console.log('📥 Sample message:', JSON.stringify(parsed, null, 2));
+      }
+      
+      // Birdeye WebSocket message format
+      // Expected format: { type: 'PRICE_DATA', data: { ... } }
+      if (parsed.type === 'PRICE_DATA' && parsed.data) {
+        const data = parsed.data;
+        return {
+          pair: this.getPairFromAddress(data.address) || 'SOL/USDC',
+          price: data.value || data.price,
+          timestamp: data.unixTime ? data.unixTime * 1000 : Date.now(),
+          volume: data.volume || data.v,
+        };
+      }
+      
+      // Generic format fallback
       if (parsed.type === 'price' || parsed.event === 'priceUpdate') {
         return {
-          pair: parsed.pair || parsed.symbol,
-          price: parsed.price || parsed.close,
-          timestamp: parsed.timestamp || Date.now(),
-          volume: parsed.volume,
+          pair: parsed.pair || parsed.symbol || 'SOL/USDC',
+          price: parsed.price || parsed.close || parsed.value,
+          timestamp: parsed.timestamp || parsed.unixTime || Date.now(),
+          volume: parsed.volume || parsed.v,
         };
+      }
+      
+      // Ping/Pong or other system messages
+      if (parsed.type === 'ping') {
+        this.ws?.send(JSON.stringify({ type: 'pong' }));
       }
       
       return null;
@@ -127,6 +287,16 @@ export class MarketDataService extends EventEmitter {
       console.error('Error parsing message:', error);
       return null;
     }
+  }
+  
+  private getPairFromAddress(address: string): string | null {
+    // Reverse map from token address to pair name
+    const addressMap: Record<string, string> = {
+      'So11111111111111111111111111111111111111112': 'SOL/USDC',
+      // Add more addresses as needed
+    };
+    
+    return addressMap[address] || null;
   }
   
   private handlePriceUpdate(update: PriceUpdate): void {

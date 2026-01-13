@@ -1,25 +1,12 @@
-import { PrismaClient } from '@prisma/client';
+import { PrismaPg } from '@prisma/adapter-pg'
+import { PrismaClient } from '../../generated/client'
 
-let prisma: PrismaClient;
+const connectionString = `${process.env.DATABASE_URL}`
 
-declare global {
-  var __prisma: PrismaClient | undefined;
-}
+const adapter = new PrismaPg({ connectionString })
+const prisma = new PrismaClient({ adapter })
 
-// Prisma 7: Pass database URL to PrismaClient constructor
-if (process.env.NODE_ENV === 'production') {
-  prisma = new PrismaClient({
-    datasourceUrl: process.env.DATABASE_URL,
-  });
-} else {
-  if (!global.__prisma) {
-    global.__prisma = new PrismaClient({
-      datasourceUrl: process.env.DATABASE_URL,
-      log: ['query', 'error', 'warn'],
-    });
-  }
-  prisma = global.__prisma;
-}
+export { prisma }
 
 export const db = prisma;
 
